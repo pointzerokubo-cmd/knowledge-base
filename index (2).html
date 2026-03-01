@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社内ナレッジベース</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f3ef;
+    --surface: #ffffff;
+    --surface2: #f9f8f5;
+    --border: #e2e0d8;
+    --accent: #2d5a3d;
+    --accent2: #4a7c59;
+    --accent-light: #e8f0ea;
+    --text: #1a1a18;
+    --text-muted: #6b6b60;
+    --text-light: #9b9b8e;
+    --tag-rule: #2d4a6b;
+    --tag-rule-bg: #e8eef5;
+    --tag-client: #7b3a1e;
+    --tag-client-bg: #f5ece8;
+    --tag-company: #7b5ea0;
+    --tag-company-bg: #f0eaf8;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+    --shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header { background: var(--accent); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { color: #fff; font-size: 15px; font-weight: 500; letter-spacing: 0.04em; display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-header { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); padding: 6px 14px; border-radius: 6px; font-size: 13px; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+  .btn-header:hover { background: rgba(255,255,255,0.25); }
+
+  /* 接続状態インジケーター */
+  .connection-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); }
+  .connection-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa; }
+  .connection-dot.connected { background: #6ee97a; }
+  .connection-dot.error { background: #ff7a7a; }
+  .connection-dot.loading { background: #ffd97a; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+
+  /* GAS URL設定バナー */
+  .setup-banner {
+    background: #fffbea; border: 2px solid #f5d86e; border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 24px; display: none;
+  }
+  .setup-banner.show { display: block; }
+  .setup-banner h3 { font-size: 14px; font-weight: 700; color: #7a5c00; margin-bottom: 8px; }
+  .setup-banner p { font-size: 13px; color: #5a4400; line-height: 1.7; margin-bottom: 10px; }
+  .setup-url-row { display: flex; gap: 8px; }
+  .setup-url-input { flex: 1; padding: 8px 12px; border: 1.5px solid #f5d86e; border-radius: 6px; font-size: 13px; font-family: inherit; outline: none; }
+  .setup-url-input:focus { border-color: var(--accent); }
+  .btn-setup { background: var(--accent); color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-family: inherit; cursor: pointer; white-space: nowrap; }
+  .btn-setup:hover { background: var(--accent2); }
+
+  .search-section { margin-bottom: 20px; }
+  .search-wrap { position: relative; }
+  .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-light); font-size: 18px; pointer-events: none; }
+  input[type="text"] { width: 100%; padding: 14px 16px 14px 48px; border: 2px solid var(--border); border-radius: 10px; font-size: 15px; font-family: inherit; background: var(--surface); color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-shadow: var(--shadow); }
+  input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+  input[type="text"]::placeholder { color: var(--text-light); }
+
+  .filter-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 11px; font-weight: 700; color: var(--text-light); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .tab { padding: 5px 14px; border-radius: 20px; font-size: 13px; font-family: inherit; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); transition: all 0.15s; font-weight: 400; white-space: nowrap; }
+  .tab:hover { border-color: var(--accent); color: var(--accent); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+  .tab-company:hover { border-color: var(--tag-company); color: var(--tag-company); }
+  .tab-company.active { background: var(--tag-company); border-color: var(--tag-company); color: #fff; }
+
+  .active-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .filter-chip { display: flex; align-items: center; gap: 4px; background: var(--accent-light); border: 1px solid #b8d4be; color: var(--accent); font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+  .filter-chip.chip-company { background: var(--tag-company-bg); border-color: #c9b8e0; color: var(--tag-company); }
+  .filter-chip button { background: none; border: none; cursor: pointer; color: inherit; font-size: 14px; line-height: 1; padding: 0; margin-left: 2px; opacity: 0.6; }
+  .filter-chip button:hover { opacity: 1; }
+
+  .stats-bar { font-size: 13px; color: var(--text-light); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .stats-bar span { color: var(--accent); font-weight: 500; }
+  .btn-reload { background: none; border: 1px solid var(--border); color: var(--text-light); padding: 3px 10px; border-radius: 6px; font-size: 12px; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+  .btn-reload:hover { border-color: var(--accent); color: var(--accent); }
+
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+  .card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: 18px 20px; cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow); }
+  .card:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+  .card.expanded { border-color: var(--accent); }
+  .card-header { display: flex; align-items: flex-start; gap: 10px; }
+  .card-tags { display: flex; gap: 6px; flex-shrink: 0; margin-top: 2px; flex-wrap: wrap; }
+  .tag { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; }
+  .tag-rule { background: var(--tag-rule-bg); color: var(--tag-rule); }
+  .tag-client { background: var(--tag-client-bg); color: var(--tag-client); }
+  .tag-company { background: var(--tag-company-bg); color: var(--tag-company); cursor: pointer; transition: background 0.1s; }
+  .tag-company:hover { background: #e4d9f5; }
+  .card-title { font-size: 15px; font-weight: 500; line-height: 1.5; flex: 1; }
+  .card-arrow { color: var(--text-light); font-size: 18px; transition: transform 0.2s; flex-shrink: 0; margin-top: 1px; }
+  .card.expanded .card-arrow { transform: rotate(90deg); color: var(--accent); }
+  .card-body { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .card.expanded .card-body { display: block; }
+  .card-body p { font-size: 14px; line-height: 1.8; color: #333; }
+  .card-meta { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-light); flex-wrap: wrap; align-items: center; }
+  .card-meta-item { display: flex; align-items: center; gap: 4px; }
+
+  /* ローディング・空 */
+  .loading-state { text-align: center; padding: 64px 24px; color: var(--text-muted); }
+  .loading-spinner { font-size: 32px; animation: spin 1.2s linear infinite; display: inline-block; margin-bottom: 12px; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .empty { text-align: center; padding: 64px 24px; color: var(--text-muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; line-height: 1.8; }
+
+  /* モーダル */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 14px; padding: 28px; width: 100%; max-width: 540px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; color: var(--accent); }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; color: var(--text); background: var(--surface2); outline: none; transition: border-color 0.2s; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); background: var(--surface); }
+  .form-group textarea { resize: vertical; min-height: 100px; }
+  .field-hint { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .btn { padding: 9px 20px; border-radius: 8px; font-size: 14px; font-family: inherit; cursor: pointer; border: none; font-weight: 500; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-secondary { background: var(--surface2); color: var(--text-muted); border: 1.5px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--text-muted); }
+  .btn-edit { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+  .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-delete { background: none; border: 1px solid #e0b0a0; color: #c0543a; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+  .btn-delete:hover { background: #fdf0ec; }
+
+  mark { background: #fff3a3; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+  @media (max-width: 600px) {
+    .container { padding: 20px 16px; }
+    header { padding: 0 16px; }
+    .modal { padding: 20px; }
+  }
+
+  /* ログイン画面 */
+  #loginScreen {
+    position: fixed; inset: 0; background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; padding: 24px;
+  }
+  #loginScreen.hidden { display: none; }
+  .login-box {
+    background: #fff; border-radius: 16px; padding: 40px 36px;
+    width: 100%; max-width: 380px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .login-logo { font-size: 32px; margin-bottom: 12px; }
+  .login-title { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  .login-subtitle { font-size: 13px; color: var(--text-light); margin-bottom: 28px; }
+  .login-input {
+    width: 100%; padding: 12px 16px; border: 2px solid var(--border);
+    border-radius: 8px; font-size: 15px; font-family: inherit;
+    outline: none; transition: border-color 0.2s; margin-bottom: 12px;
+    text-align: center; letter-spacing: 0.1em;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-btn {
+    width: 100%; padding: 12px; background: var(--accent); color: #fff;
+    border: none; border-radius: 8px; font-size: 15px; font-family: inherit;
+    font-weight: 700; cursor: pointer; transition: background 0.15s;
+  }
+  .login-btn:hover { background: var(--accent2); }
+  .login-error { font-size: 13px; color: #c0543a; margin-top: 10px; display: none; }
+  .login-error.show { display: block; }
+</style>
+</head>
+<body>
+
+
+<!-- ログイン画面 -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">📋</div>
+    <div class="login-title">社内ナレッジベース</div>
+    <div class="login-subtitle">パスワードを入力してください</div>
+    <input type="password" class="login-input" id="loginInput" placeholder="パスワード" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="loginError">パスワードが違います</div>
+  </div>
+</div>
+<header>
+  <div class="logo">
+    <div class="logo-icon">📋</div>
+    社内ナレッジベース
+  </div>
+  <div class="header-actions">
+    <div class="connection-badge">
+      <div class="connection-dot loading" id="connDot"></div>
+      <span id="connLabel">接続中...</span>
+    </div>
+    <button class="btn-header" onclick="openAddModal()">＋ 新規登録</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- GAS URL未設定時のセットアップバナー -->
+  <div class="setup-banner" id="setupBanner">
+    <h3>⚙️ GAS URLを設定してください</h3>
+    <p>
+      Google Apps Scriptをデプロイして取得したURLを入力すると、スプレッドシートとの連携が始まります。<br>
+      手順：スプレッドシート →「拡張機能」→「Apps Script」→ コードを貼り付け → デプロイ → URLをコピー
+    </p>
+    <div class="setup-url-row">
+      <input type="text" class="setup-url-input" id="gasUrlInput" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+      <button class="btn-setup" onclick="saveGasUrl()">保存して接続</button>
+    </div>
+  </div>
+
+  <div class="search-section">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="キーワードで検索（例：有給申請、請求書、A商事）" oninput="render()">
+    </div>
+    <div class="filter-row" id="catTabs">
+      <span class="filter-label">種別</span>
+      <button class="tab active" onclick="setCatFilter('all', this)">すべて</button>
+      <button class="tab" onclick="setCatFilter('rule', this)">社内ルール</button>
+      <button class="tab" onclick="setCatFilter('client', this)">取引先問い合わせ</button>
+    </div>
+    <div class="filter-row" id="companyTabs"></div>
+    <div class="active-filters" id="activeFilters"></div>
+  </div>
+
+  <div class="stats-bar" id="statsBar">
+    <button class="btn-reload" onclick="loadItems()">🔄 再読み込み</button>
+  </div>
+  <div class="cards" id="cardList">
+    <div class="loading-state"><div class="loading-spinner">⟳</div><p>データを読み込み中...</p></div>
+  </div>
+</div>
+
+<!-- 登録・編集モーダル -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">新規登録</h2>
+    <div class="form-group">
+      <label>カテゴリ</label>
+      <select id="formCategory" onchange="toggleCompanyField()">
+        <option value="rule">社内ルール</option>
+        <option value="client">取引先問い合わせ</option>
+      </select>
+    </div>
+    <div class="form-group" id="companyFieldGroup" style="display:none;">
+      <label>取引先名</label>
+      <input type="text" id="formCompany" placeholder="例：株式会社A商事" list="companyDatalist">
+      <datalist id="companyDatalist"></datalist>
+      <div class="field-hint">※ 新しい取引先名を入力すると自動でフィルターに追加されます</div>
+    </div>
+    <div class="form-group">
+      <label>質問・タイトル</label>
+      <input type="text" id="formTitle" placeholder="例：請求書の送付先は？">
+    </div>
+    <div class="form-group">
+      <label>回答・内容</label>
+      <textarea id="formBody" placeholder="回答内容を入力してください"></textarea>
+    </div>
+    <div class="form-group">
+      <label>担当部署（任意）</label>
+      <input type="text" id="formDept" placeholder="例：営業部、経理部">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveItem()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+const GAS_URL_KEY = 'knowledgebase_gas_url';
+let GAS_URL = 'https://script.google.com/macros/s/AKfycbxQuKXzZBOv4dpgTNjM1G6CWZoNnIYflUsQcwp6C-9hddQ4pjlmixYB2oN3qFQIQn51OQ/exec';
+
+let items = [];
+let currentCatFilter = 'all';
+let currentCompanyFilter = 'all';
+let editingId = null;
+
+// ============================================================
+// 初期化
+// ============================================================
+async function doLogin() {
+  const input = document.getElementById("loginInput").value.trim();
+  const error = document.getElementById("loginError");
+  const btn = document.querySelector(".login-btn");
+  if (!input) return;
+
+  btn.textContent = "確認中...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${GAS_URL}?action=checkPassword&password=${encodeURIComponent(input)}`);
+    const data = await res.json();
+    if (data.status === "ok" && data.match) {
+      document.getElementById("loginScreen").classList.add("hidden");
+      sessionStorage.setItem("kb_auth", "1");
+      error.classList.remove("show");
+      loadItems();
+    } else {
+      error.textContent = "パスワードが違います";
+      error.classList.add("show");
+      document.getElementById("loginInput").value = "";
+    }
+  } catch (err) {
+    error.textContent = "接続エラーが発生しました。再度お試しください。";
+    error.classList.add("show");
+  } finally {
+    btn.textContent = "ログイン";
+    btn.disabled = false;
+  }
+}
+
+window.onload = function() {
+  if (sessionStorage.getItem("kb_auth") === "1") {
+    document.getElementById("loginScreen").classList.add("hidden");
+    loadItems();
+  }
+};
+
+function showSetupBanner() {
+  document.getElementById('setupBanner').classList.add('show');
+}
+
+function saveGasUrl() {
+  const url = document.getElementById('gasUrlInput').value.trim();
+  if (!url.startsWith('https://script.google.com/')) {
+    alert('正しいGAS URLを入力してください（https://script.google.com/... の形式）');
+    return;
+  }
+  GAS_URL = url;
+  localStorage.setItem(GAS_URL_KEY, url);
+  document.getElementById('setupBanner').classList.remove('show');
+  loadItems();
+}
+
+// ============================================================
+// GAS API通信
+// ============================================================
+async function apiGet() {
+  const res = await fetch(`${GAS_URL}?action=list`);
+  const data = await res.json();
+  if (data.status !== 'ok') throw new Error(data.message);
+  return data.items;
+}
+
+async function apiPost(payload) {
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') throw new Error(data.message);
+  return data;
+}
+
+// ============================================================
+// データ操作
+// ============================================================
+async function loadItems() {
+  if (!GAS_URL) return;
+  setConnection('loading', '接続中...');
+  document.getElementById('cardList').innerHTML = '<div class="loading-state"><div class="loading-spinner">⟳</div><p>データを読み込み中...</p></div>';
+
+  try {
+    items = await apiGet();
+    setConnection('connected', '接続済み');
+    renderCompanyTabs();
+    renderActiveFilters();
+    render();
+  } catch (err) {
+    setConnection('error', '接続エラー');
+    document.getElementById('cardList').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>データの取得に失敗しました。<br>GAS URLを確認してください。<br><small>${err.message}</small></p></div>`;
+  }
+}
+
+// GAS未設定時のデモ表示
+function showLocalDemo() {
+  items = [
+    { id: '1', category: 'rule', company: '', title: '（サンプル）有給休暇の申請方法は？', body: 'GAS URLを設定するとスプレッドシートのデータが表示されます。', dept: '人事部', updated: '2024-12-01' },
+    { id: '2', category: 'client', company: 'サンプル商事', title: '（サンプル）請求書の送付先は？', body: 'GAS URLを設定するとスプレッドシートのデータが表示されます。', dept: '経理部', updated: '2024-12-01' },
+  ];
+  renderCompanyTabs(); renderActiveFilters(); render();
+}
+
+async function saveItem() {
+  const title = document.getElementById('formTitle').value.trim();
+  const body = document.getElementById('formBody').value.trim();
+  if (!title || !body) { alert('質問と回答は必須です'); return; }
+
+  const cat = document.getElementById('formCategory').value;
+  const item = {
+    id: editingId || '',
+    category: cat,
+    company: cat === 'client' ? document.getElementById('formCompany').value.trim() : '',
+    title, body,
+    dept: document.getElementById('formDept').value.trim()
+  };
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '保存中...';
+
+  try {
+    if (!GAS_URL) {
+      // デモモード：ローカルのみ
+      if (editingId) {
+        const idx = items.findIndex(i => i.id === editingId);
+        items[idx] = { ...item, updated: new Date().toISOString().slice(0,10) };
+      } else {
+        items.unshift({ ...item, id: Date.now().toString(), updated: new Date().toISOString().slice(0,10) });
+      }
+    } else {
+      if (editingId) {
+        await apiPost({ action: 'update', item });
+      } else {
+        await apiPost({ action: 'add', item });
+      }
+      items = await apiGet();
+    }
+    closeModal();
+    renderCompanyTabs(); renderActiveFilters(); render();
+  } catch (err) {
+    alert('保存に失敗しました: ' + err.message);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = '保存する';
+  }
+}
+
+async function deleteItem(id) {
+  if (!confirm('この項目を削除しますか？')) return;
+  try {
+    if (GAS_URL) {
+      await apiPost({ action: 'delete', id });
+      items = await apiGet();
+    } else {
+      items = items.filter(i => i.id !== id);
+    }
+    if (currentCompanyFilter !== 'all' && !items.some(i => i.company === currentCompanyFilter)) currentCompanyFilter = 'all';
+    renderCompanyTabs(); renderActiveFilters(); render();
+  } catch (err) {
+    alert('削除に失敗しました: ' + err.message);
+  }
+}
+
+// ============================================================
+// UI
+// ============================================================
+function setConnection(state, label) {
+  const dot = document.getElementById('connDot');
+  const lbl = document.getElementById('connLabel');
+  dot.className = 'connection-dot ' + state;
+  lbl.textContent = label;
+}
+
+function getCompanies() {
+  return [...new Set(items.filter(i => i.company).map(i => i.company))].sort();
+}
+
+function renderCompanyTabs() {
+  const companies = getCompanies();
+  const row = document.getElementById('companyTabs');
+  if (companies.length === 0) { row.innerHTML = ''; return; }
+  let html = `<span class="filter-label">取引先</span>
+    <button class="tab tab-company ${currentCompanyFilter === 'all' ? 'active' : ''}" onclick="setCompanyFilter('all', this)">すべて</button>`;
+  companies.forEach(c => {
+    html += `<button class="tab tab-company ${currentCompanyFilter === c ? 'active' : ''}" onclick="filterByCompany('${c.replace(/'/g, "\\'")}')">${c}</button>`;
+  });
+  row.innerHTML = html;
+  document.getElementById('companyDatalist').innerHTML = companies.map(c => `<option value="${c}">`).join('');
+}
+
+function renderActiveFilters() {
+  let html = '';
+  if (currentCatFilter !== 'all') {
+    const label = currentCatFilter === 'rule' ? '社内ルール' : '取引先問い合わせ';
+    html += `<span class="filter-chip">種別: ${label} <button onclick="resetCatFilter()">×</button></span>`;
+  }
+  if (currentCompanyFilter !== 'all') {
+    html += `<span class="filter-chip chip-company">🏢 ${currentCompanyFilter} <button onclick="resetCompanyFilter()">×</button></span>`;
+  }
+  document.getElementById('activeFilters').innerHTML = html;
+}
+
+function setCatFilter(f, el) {
+  currentCatFilter = f;
+  document.querySelectorAll('#catTabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderActiveFilters(); render();
+}
+
+function setCompanyFilter(c, el) {
+  currentCompanyFilter = c;
+  renderCompanyTabs(); renderActiveFilters(); render();
+}
+
+function filterByCompany(c) {
+  currentCompanyFilter = c;
+  currentCatFilter = 'client';
+  document.querySelectorAll('#catTabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#catTabs .tab')[2].classList.add('active');
+  renderCompanyTabs(); renderActiveFilters(); render();
+}
+
+function resetCatFilter() {
+  currentCatFilter = 'all';
+  document.querySelectorAll('#catTabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#catTabs .tab')[0].classList.add('active');
+  renderActiveFilters(); render();
+}
+
+function resetCompanyFilter() {
+  currentCompanyFilter = 'all';
+  renderCompanyTabs(); renderActiveFilters(); render();
+}
+
+function highlight(text, q) {
+  if (!q || !text) return text || '';
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(text).replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+}
+
+function render() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtered = items.filter(item => {
+    const matchCat = currentCatFilter === 'all' || item.category === currentCatFilter;
+    const matchCompany = currentCompanyFilter === 'all' || item.company === currentCompanyFilter;
+    const matchQ = !q ||
+      (item.title||'').toLowerCase().includes(q) ||
+      (item.body||'').toLowerCase().includes(q) ||
+      (item.dept||'').toLowerCase().includes(q) ||
+      (item.company||'').toLowerCase().includes(q);
+    return matchCat && matchCompany && matchQ;
+  });
+
+  const total = items.filter(i =>
+    (currentCatFilter === 'all' || i.category === currentCatFilter) &&
+    (currentCompanyFilter === 'all' || i.company === currentCompanyFilter)
+  ).length;
+
+  document.getElementById('statsBar').innerHTML =
+    `${q ? `<span>${filtered.length}</span> 件ヒット（全 ${total} 件中）` : `全 <span>${total}</span> 件`}
+     <button class="btn-reload" onclick="loadItems()">🔄 再読み込み</button>`;
+
+  const list = document.getElementById('cardList');
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>条件に一致する情報が見つかりませんでした。<br>キーワードや絞り込みを変えるか、新しく登録してください。</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(item => `
+    <div class="card" id="card-${item.id}" onclick="toggle('${item.id}')">
+      <div class="card-header">
+        <div class="card-tags">
+          <span class="tag ${item.category === 'rule' ? 'tag-rule' : 'tag-client'}">${item.category === 'rule' ? '社内ルール' : '取引先'}</span>
+          ${item.company ? `<span class="tag tag-company" onclick="event.stopPropagation(); filterByCompany('${item.company.replace(/'/g,"\\'")}')">🏢 ${highlight(item.company, q)}</span>` : ''}
+        </div>
+        <div class="card-title">${highlight(item.title, q)}</div>
+        <span class="card-arrow">›</span>
+      </div>
+      <div class="card-body">
+        <p>${highlight(item.body, q)}</p>
+        <div class="card-meta">
+          ${item.dept ? `<span class="card-meta-item">🏛 ${item.dept}</span>` : ''}
+          <span class="card-meta-item">🗓 更新: ${item.updated}</span>
+          <span style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn-edit" onclick="event.stopPropagation(); editItem('${item.id}')">編集</button>
+            <button class="btn-delete" onclick="event.stopPropagation(); deleteItem('${item.id}')">削除</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggle(id) {
+  document.getElementById('card-' + id).classList.toggle('expanded');
+}
+
+function toggleCompanyField() {
+  const cat = document.getElementById('formCategory').value;
+  document.getElementById('companyFieldGroup').style.display = cat === 'client' ? 'block' : 'none';
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '新規登録';
+  document.getElementById('formCategory').value = 'rule';
+  document.getElementById('formTitle').value = '';
+  document.getElementById('formBody').value = '';
+  document.getElementById('formDept').value = '';
+  document.getElementById('formCompany').value = '';
+  document.getElementById('saveBtn').textContent = '保存する';
+  toggleCompanyField();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function editItem(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = '編集';
+  document.getElementById('formCategory').value = item.category;
+  document.getElementById('formTitle').value = item.title;
+  document.getElementById('formBody').value = item.body;
+  document.getElementById('formDept').value = item.dept || '';
+  document.getElementById('formCompany').value = item.company || '';
+  toggleCompanyField();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+</script>
+</body>
+</html>
